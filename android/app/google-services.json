@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "607405095574",
+    "project_id": "lockbox-386bf",
+    "storage_bucket": "lockbox-386bf.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:607405095574:android:cd4f86f677de7eb83760b7",
+        "android_client_info": {
+          "package_name": "com.example.lockbox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCYp7NkE9Bx_9D3GrukP2qnng-QJaCHS4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
