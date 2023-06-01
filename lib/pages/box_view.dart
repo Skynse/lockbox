@@ -132,18 +132,26 @@ class _BoxViewState extends ConsumerState<BoxView> {
                               .map((DocumentSnapshot document) {
                                 Map<String, dynamic> data =
                                     document.data()! as Map<String, dynamic>;
-                                return ListTile(
-                                  onTap: () {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                SingleBoxViewPage(
-                                                  boxId: document.id,
-                                                )));
-                                  },
-                                  title: Text(data['title']),
-                                  subtitle: Text(data['username']),
+                                return Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: ListTile(
+                                    onTap: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  SingleBoxViewPage(
+                                                    boxId: document.id,
+                                                  )));
+                                    },
+                                    title: Text(data['title']),
+                                    subtitle: Text(data['username']),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      side: const BorderSide(
+                                          color: Colors.grey, width: 0.5),
+                                    ),
+                                  ),
                                 );
                               })
                               .toList()
