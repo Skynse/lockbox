@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lockbox/authProvider.dart';
+import 'package:lockbox/backend/backend.dart';
 import 'package:lockbox/pages/auth/auth_gate.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -19,24 +19,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ListTile(
-            leading: Icon(Icons.person),
-            title: Text(
-              ref.read(authProvider).currentUser!.email.toString(),
-            ),
-          ),
-          ElevatedButton(
-              onPressed: () async {
-                await ref.read(authProvider).signOut();
-                Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (_) => AuthGate()));
-              },
-              child: const Center(child: Text('Sign Out')))
-        ],
-      ),
+      body: FutureBuilder(
+          future: ref.read(appwriteProvider).getUser(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.person),
+                    title: Text(snapshot.data!.email),
+                  ),
+                  ElevatedButton(
+                      onPressed: () async {
+                        await ref.read(appwriteProvider).logout();
+                        Navigator.pushReplacement(context,
+                            MaterialPageRoute(builder: (_) => AuthGate()));
+                      },
+                      child: const Center(child: Text('Sign Out')))
+                ],
+              );
+            } else {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+          }),
     ));
   }
 }

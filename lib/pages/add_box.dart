@@ -1,17 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lockbox/backend/backend.dart';
 
 import 'package:lockbox/models/box.dart';
 
-class AddPage extends StatefulWidget {
+class AddPage extends ConsumerStatefulWidget {
   const AddPage({Key? key}) : super(key: key);
 
   @override
-  State<AddPage> createState() => _AddPageState();
+  ConsumerState<AddPage> createState() => _AddPageState();
 }
 
-class _AddPageState extends State<AddPage> {
+class _AddPageState extends ConsumerState<AddPage> {
   final _formKey = GlobalKey<FormState>();
   TextEditingController titleController = TextEditingController();
   TextEditingController usernameController = TextEditingController();
@@ -115,24 +116,22 @@ class _AddPageState extends State<AddPage> {
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     // add to firestore
-                    final auth = FirebaseAuth.instance;
-                    final user = auth.currentUser;
 
-                    final db = FirebaseFirestore.instance;
-                    await db
-                        .collection('users')
-                        .doc(user!.uid)
-                        .collection('boxes')
-                        .add(
-                          Box.fromMap({
-                            'title': titleController.text,
-                            'username': usernameController.text,
-                            'password': passwordController.text,
-                            'url': urlController.text,
-                            'tags': tags,
-                            'favorite': false,
-                          }).toMap(),
-                        );
+                    final user = await ref.read(appwriteProvider).getUser();
+                    String id = user.$id;
+                    final db = Databases(ref.read(appwriteProvider).client);
+                    await db.createDocument(
+                        databaseId: "64a39d6a559df30e0c7a",
+                        collectionId: "64a39d7839a6c259cf53",
+                        documentId: ID.unique(),
+                        data: {
+                          "title": titleController.text,
+                          "username": usernameController.text,
+                          "password": passwordController.text,
+                          "url": urlController.text,
+                          "tags": tags,
+                          "userID": id,
+                        });
                     Navigator.pop(context);
                   }
                 },

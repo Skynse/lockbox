@@ -1,17 +1,18 @@
 import 'dart:core';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lockbox/backend/backend.dart';
 import 'register.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
@@ -26,30 +27,10 @@ class _LoginPageState extends State<LoginPage> {
   var rememberValue = false;
 
   login() async {
-    try {
-      return await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text,
-        password: passwordController.text,
-      );
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No user found for that email.'),
-          ),
+    ref.read(appwriteProvider).login(
+          email: emailController.text,
+          password: passwordController.text,
         );
-      } else if (e.code == 'wrong-password') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Wrong password provided for that user.'),
-          ),
-        );
-      }
-    }
-
-    if (FirebaseAuth.instance.currentUser != null) {
-      Navigator.pushReplacementNamed(context, '/home');
-    }
   }
 
   @override

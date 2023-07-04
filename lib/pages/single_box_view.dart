@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lockbox/authProvider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lockbox/backend/backend.dart';
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart';
 import 'package:debounce_throttle/debounce_throttle.dart';
+
+import '../models/box.dart';
 
 class SingleBoxViewPage extends ConsumerStatefulWidget {
   final String boxId;
@@ -52,19 +55,48 @@ class _SingleBoxViewPageState extends ConsumerState<SingleBoxViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    saveState() {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(ref.read(authProvider).currentUser!.uid)
-          .collection('boxes')
-          .doc(widget.boxId)
-          .update({
-        'username': usernameController.text,
-        'password': passwordController.text,
-        'url': urlController.text,
-        'tags': tags,
-        'favorite': isFavorite,
-      });
+    saveState() async {
+      // save
+      Databases db = Databases(ref.read(appwriteProvider).client);
+
+      DocumentList result = await db.listDocuments(
+          databaseId: "64a39d6a559df30e0c7a",
+          collectionId: "64a39d7839a6c259cf53",
+          queries: [
+            Query.equal("userID", ref.read(appwriteProvider).getUser()),
+            Query.equal("id", widget.boxId),
+          ]);
+
+      if (result.documents.isNotEmpty) {
+        // update
+        Document doc = result.documents[0];
+
+        db.updateDocument(
+            databaseId: "64a39d6a559df30e0c7a",
+            collectionId: "64a39d7839a6c259cf53",
+            documentId: widget.boxId,
+            data: {
+              "username": usernameController.text,
+              "password": passwordController.text,
+              "url": urlController.text,
+              "tags": tags,
+              "favorite": isFavorite,
+            });
+      } else {
+        // create
+        db.createDocument(
+            databaseId: "64a39d6a559df30e0c7a",
+            collectionId: "64a39d7839a6c259cf53",
+            documentId: widget.boxId,
+            data: {
+              "username": usernameController.text,
+              "password": passwordController.text,
+              "url": urlController.text,
+              "tags": tags,
+              "favorite": isFavorite,
+              "userID": ref.read(appwriteProvider).getUser(),
+            });
+      }
     }
 
     debouncer.values.listen((event) {
@@ -90,12 +122,10 @@ class _SingleBoxViewPageState extends ConsumerState<SingleBoxViewPage> {
       ),
       body: SingleChildScrollView(
         child: FutureBuilder(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(ref.read(authProvider).currentUser!.uid)
-              .collection('boxes')
-              .doc(widget.boxId)
-              .get(),
+          future: Databases(ref.read(appwriteProvider).client).getDocument(
+              databaseId: "64a39d6a559df30e0c7a",
+              collectionId: "64a39d7839a6c259cf53",
+              documentId: widget.boxId),
           builder: (BuildContext context, AsyncSnapshot snapshot) {
             if (snapshot.hasError) {
               return const Text('Something went wrong');
@@ -207,19 +237,10 @@ class _SingleBoxViewPageState extends ConsumerState<SingleBoxViewPage> {
                               leading: Icon(Icons.star_border),
                               onTap: () {
                                 setState(
-                                  () {
+                                  () async {
                                     isFavorite = true;
-                                    FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(ref
-                                            .read(authProvider)
-                                            .currentUser!
-                                            .uid)
-                                        .collection('boxes')
-                                        .doc(widget.boxId)
-                                        .update({
-                                      'favorite': true,
-                                    });
+
+                                    saveState();
                                   },
                                 );
                               })
@@ -230,17 +251,7 @@ class _SingleBoxViewPageState extends ConsumerState<SingleBoxViewPage> {
                                 setState(
                                   () {
                                     isFavorite = false;
-                                    FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(ref
-                                            .read(authProvider)
-                                            .currentUser!
-                                            .uid)
-                                        .collection('boxes')
-                                        .doc(widget.boxId)
-                                        .update({
-                                      'favorite': false,
-                                    });
+                                    saveState();
                                   },
                                 );
                               }),
@@ -252,12 +263,39 @@ class _SingleBoxViewPageState extends ConsumerState<SingleBoxViewPage> {
                         textColor: Colors.red,
                         iconColor: Colors.red,
                         onTap: () {
-                          FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(ref.read(authProvider).currentUser!.uid)
-                              .collection('boxes')
-                              .doc(widget.boxId)
-                              .delete();
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text("Delete"),
+                                content: const Text(
+                                    "Are you sure you want to delete this box?"),
+                                actions: [
+                                  TextButton(
+                                    child: const Text("Cancel"),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                  TextButton(
+                                    child: const Text("Delete"),
+                                    onPressed: () async {
+                                      // delete
+                                      Databases db = Databases(
+                                          ref.read(appwriteProvider).client);
+                                      db.deleteDocument(
+                                          databaseId: "64a39d6a559df30e0c7a",
+                                          collectionId: "64a39d7839a6c259cf53",
+                                          documentId: widget.boxId);
+
+                                      Navigator.pop(context);
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          );
 
                           Navigator.pop(context);
                         },

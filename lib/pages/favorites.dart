@@ -1,25 +1,27 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+
+import 'package:appwrite/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lockbox/models/box.dart';
 import 'package:lockbox/pages/single_box_view.dart';
+import 'add_box.dart';
+
 import 'package:debounce_throttle/debounce_throttle.dart';
-import 'package:lockbox/authProvider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lockbox/backend/backend.dart';
+
+import 'package:appwrite/appwrite.dart';
 
 class FavoritesPage extends ConsumerStatefulWidget {
   @override
-  _FavoritesPageState createState() => _FavoritesPageState();
+  _BoxViewState createState() => _BoxViewState();
 }
 
-class _FavoritesPageState extends ConsumerState<FavoritesPage> {
+class _BoxViewState extends ConsumerState<FavoritesPage> {
   String searchFilter = '';
   TextEditingController searchController = TextEditingController();
+  final debouncer = Debouncer(Duration(milliseconds: 500), initialValue: '');
 
-  final debouncer =
-      Debouncer<String>(const Duration(milliseconds: 500), initialValue: '');
-
-  late User? user;
   @override
   void dispose() {
     searchController.dispose();
@@ -29,11 +31,39 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
   // generate some
   List<Box> boxes = [];
 
+  void fetchBoxes() async {
+    Databases db = Databases(ref.read(appwriteProvider).client);
+
+    Future<DocumentList> result = db.listDocuments(
+        databaseId: "64a39d6a559df30e0c7a",
+        collectionId: "64a39d7839a6c259cf53",
+        queries: [
+          Query.equal("userID", ref.read(appwriteProvider).getUser()),
+          Query.search("username", searchFilter.toLowerCase()),
+          Query.equal("favorite", true),
+        ]);
+
+    DocumentList list = await result;
+
+    List<Box> boxes = [];
+
+    for (Document doc in list.documents) {
+      boxes.add(Box.fromJson(jsonDecode(doc.data.toString())));
+    }
+
+    setState(() {
+      this.boxes = boxes;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     // get boxes for currently logged in user
-    user = ref.read(authProvider).currentUser;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchBoxes();
+    });
+
     searchController.addListener(() {
       debouncer.value = searchController.text;
     });
@@ -46,15 +76,29 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
         searchFilter = event;
       });
     });
-    final boxRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .collection('boxes')
-        .snapshots();
+
+    Databases db = Databases(ref.read(appwriteProvider).client);
+
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        shape: const CircleBorder(),
+        backgroundColor: Colors.orange,
+        onPressed: () {
+          // modal
+
+          showModalBottomSheet(
+              isScrollControlled: true,
+              useSafeArea: true,
+              context: context,
+              builder: (context) {
+                return AddPage();
+              });
+        },
+        child: const Icon(Icons.add),
+      ),
       appBar: AppBar(
         title: Text(
-          'Favorites',
+          'Vault',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
@@ -82,72 +126,35 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                 ),
               ),
             ),
-            StreamBuilder(
-              stream: boxRef,
-              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.hasError) {
-                  return const Text('Something went wrong');
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                var documents = snapshot.data!.docs.where((element) {
-                  return element['favorite'] == true &&
-                      (element['title']
-                              .toString()
-                              .toLowerCase()
-                              .contains(searchFilter.toLowerCase()) ||
-                          element['username']
-                              .toString()
-                              .toLowerCase()
-                              .contains(searchFilter.toLowerCase()) ||
-                          // check if in tags
-                          element['tags']
-                              .toString()
-                              .toLowerCase()
-                              .contains(searchFilter.toLowerCase()));
-                });
-
-                return snapshot.data!.docs.isEmpty || documents.isEmpty
-                    ? const Text('No favorite boxes')
-                    : Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: documents
-                              .map((DocumentSnapshot document) {
-                                Map<String, dynamic> data =
-                                    document.data()! as Map<String, dynamic>;
-                                return Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ListTile(
-                                    onTap: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  SingleBoxViewPage(
-                                                    boxId: document.id,
-                                                  )));
-                                    },
-                                    title: Text(data['title']),
-                                    subtitle: Text(data['username']),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      side: const BorderSide(
-                                          color: Colors.grey, width: 0.5),
-                                    ),
-                                  ),
-                                );
-                              })
-                              .toList()
-                              .cast(),
-                        ),
-                      );
-              },
-            ),
+            boxes.isEmpty
+                ? const Center(child: Text('No boxes'))
+                : Expanded(
+                    child: ListView.builder(
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => SingleBoxViewPage(
+                                            boxId: boxes[index].userId,
+                                          )));
+                            },
+                            title: Text(boxes[index].title),
+                            subtitle: Text(boxes[index].username),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(
+                                  color: Colors.grey, width: 0.5),
+                            ),
+                          ),
+                        );
+                      },
+                      itemCount: boxes.length,
+                    ),
+                  ),
           ],
         ),
       ),

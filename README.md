@@ -7,8 +7,6 @@
 |     <img src="assets/preview1.jpg">  |<img src="assets/preview2.jpg">   |
 
 ## To run on your own machine
-### Create a new FireBase project at firebase.com
-
 
 ```
 git clone https://github.com/skynse/lockbox

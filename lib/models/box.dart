@@ -1,4 +1,5 @@
 class Box {
+  final String userId;
   final String title;
   final String username;
   final String password;
@@ -8,6 +9,7 @@ class Box {
   final bool favorite;
 
   Box({
+    required this.userId,
     required this.title,
     this.username = "",
     required this.password,
@@ -18,6 +20,7 @@ class Box {
 
   factory Box.fromJson(Map<String, dynamic> json) {
     return Box(
+      userId: json['userId'],
       title: json['title'],
       username: json['username'],
       password: json['password'],
@@ -29,6 +32,7 @@ class Box {
 
   factory Box.fromMap(Map<String, dynamic> map) {
     return Box(
+      userId: map['userId'],
       title: map['title'],
       username: map['username'],
       password: map['password'],
@@ -40,6 +44,7 @@ class Box {
 
   Map<String, dynamic> toMap() {
     return {
+      'userId': userId,
       'title': title,
       'username': username,
       'password': password,

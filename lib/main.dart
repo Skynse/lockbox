@@ -4,18 +4,12 @@ import 'package:lockbox/pages/auth/auth_gate.dart';
 import 'package:lockbox/pages/auth/login.dart';
 import 'package:lockbox/pages/auth/register.dart';
 import 'package:lockbox/pages/home.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:lockbox/backend/backend.dart';
 
-import 'firebase_options.dart';
-
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:appwrite/appwrite.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
   runApp(
     ProviderScope(
@@ -30,9 +24,6 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
-  int counter = 0;
-  final auth = FirebaseAuth.instanceFor(app: Firebase.app());
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
